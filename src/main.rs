@@ -1,4 +1,3 @@
-mod editor;
 use libc::{STDIN_FILENO, STDOUT_FILENO, TIOCGWINSZ, winsize};
 use std::{
     env,
@@ -9,26 +8,14 @@ use termios::{
     BRKINT, CS8, ECHO, ICANON, ICRNL, IEXTEN, INPCK, ISIG, ISTRIP, IXON, OPOST, TCSAFLUSH, Termios,
     VMIN, VTIME, tcsetattr,
 };
+mod editor;
+mod key;
 
-use crate::editor::Editor;
+use crate::{editor::Editor, key::Key};
 
 const TAB_STOP: usize = 8;
 
 const KILO_QUIT_TIMES: u8 = 3;
-
-#[derive(PartialEq, Eq, Clone, Copy)]
-enum Key {
-    Character(u8),
-    ArrowUp,
-    ArrowDown,
-    ArrowLeft,
-    ArrowRight,
-    Delete,
-    Home,
-    End,
-    PageUp,
-    PageDown,
-}
 
 struct RawMode {
     origin_terminal: Termios,
@@ -211,26 +198,6 @@ fn editor_read_key(stdin: &mut Stdin) -> Key {
             };
         }
     }
-}
-fn get_window_size() -> Result<(u16, u16)> {
-    let ws = winsize {
-        ws_col: 0,
-        ws_row: 0,
-        ws_xpixel: 0,
-        ws_ypixel: 0,
-    };
-    unsafe {
-        if libc::ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == -1 || ws.ws_col == 0 {
-            return Err(Error::other("get_window_size: ioctl failed"));
-        }
-    }
-    Ok((ws.ws_row, ws.ws_col))
-}
-
-fn clear_screen(stdout: &mut Stdout) -> Result<()> {
-    stdout.write_all(b"\x1b[2J")?;
-    stdout.write_all(b"\x1b[H")?;
-    stdout.flush()
 }
 
 fn main() -> Result<()> {
