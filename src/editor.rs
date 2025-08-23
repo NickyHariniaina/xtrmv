@@ -14,6 +14,7 @@ macro_rules! ctrl_key {
 }
 
 pub const CTRL_Q: u8 = ctrl_key!(b'q');
+pub const CTRL_C: u8 = ctrl_key!(b'c');
 pub const CTRL_H: u8 = ctrl_key!(b'h');
 pub const CTRL_S: u8 = ctrl_key!(b's');
 pub const BACKSPACE: u8 = 127;
@@ -417,6 +418,9 @@ impl Editor {
 
     pub fn insert_process(&mut self, c: Key) -> bool {
         match c {
+            Key::Character(CTRL_C) => {
+                self.type_mode = Mode::Normal;
+            }
             Key::Character(b'\r') => self.insert_new_line(),
             Key::Character(CTRL_Q) => {
                 if self.modified && self.quit_times > 0 {
