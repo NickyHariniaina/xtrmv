@@ -10,12 +10,13 @@ use termios::{
 };
 mod editor;
 mod key;
+mod mode;
 
 use crate::{editor::Editor, key::Key};
 
 const TAB_STOP: usize = 8;
 
-const KILO_QUIT_TIMES: u8 = 3;
+const QUIT_TIMES: u8 = 3;
 
 struct RawMode {
     origin_terminal: Termios,

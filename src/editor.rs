@@ -20,10 +20,11 @@ pub const BACKSPACE: u8 = 127;
 
 use libc::{STDOUT_FILENO, TIOCGWINSZ, winsize};
 
-use crate::{KILO_QUIT_TIMES, RawMode, Row, byte_slice, editor_read_key, key::Key};
+use crate::{QUIT_TIMES, RawMode, Row, byte_slice, editor_read_key, key::Key, mode::Mode};
 
 pub struct Editor {
     pub _mode: RawMode,
+    pub type_mode: Mode,
     pub c_inline_pos: usize,
     pub c_block_pos: usize,
     pub c_inline_pos_with_tab: usize,
@@ -49,6 +50,7 @@ impl Editor {
         let stdout = stdout();
         Ok(Self {
             _mode: mode,
+            type_mode: Mode::Normal,
             c_inline_pos: 0,
             c_block_pos: 0,
             c_inline_pos_with_tab: 0,
@@ -58,7 +60,7 @@ impl Editor {
             active_cols: cols as usize,
             rows: Vec::new(),
             modified: false,
-            quit_times: KILO_QUIT_TIMES,
+            quit_times: QUIT_TIMES,
             stdin,
             stdout,
             filename: None,
@@ -136,9 +138,16 @@ impl Editor {
         self.write(b"\x1b[7m")?; // revert background color
         let status;
         {
+            let mode = "NORMAL MODE".to_string();
             let name = self.filename.as_ref().map_or("[No name]", |s| s.as_str());
             let modified = if self.modified { " (modified)" } else { "" };
-            let mut content = format!("{:.20} - {} lines{}", name, self.numrows(), modified);
+            let mut content = format!(
+                "-- {} ------ {:.20} - {} lines{}",
+                mode,
+                name,
+                self.numrows(),
+                modified
+            );
             // :.20 print only 20 letter
             content.truncate(self.active_cols);
             status = content;
@@ -381,7 +390,7 @@ impl Editor {
             Key::Character(k) if (32..127).contains(&k) => self.insert_char(k as char),
             _ => (),
         };
-        self.quit_times = KILO_QUIT_TIMES;
+        self.quit_times = QUIT_TIMES;
         true
     }
 
