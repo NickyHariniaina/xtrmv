@@ -143,8 +143,9 @@ impl Editor {
             content.truncate(self.active_cols);
             status = content;
         }
-        let visual_c_pos = self.c_inline_pos_with_tab + 1;
-        let right_status_content = format!("{}:{}", visual_c_pos, self.numrows());
+        let visual_c_pos_inline = self.c_inline_pos_with_tab + 1;
+        let visual_c_pos_block = self.c_block_pos + 1;
+        let right_status_content = format!("{}:{}", visual_c_pos_inline, visual_c_pos_block);
 
         self.write(status.as_bytes())?;
         let mut len = status.len();
@@ -180,7 +181,7 @@ impl Editor {
     pub fn try_refresh_screen(&mut self) -> Result<()> {
         self.scroll();
 
-        self.write(b"\x1b[?25l")?; // Hide terminal cursor.
+        self.write(b"\x1b[?25l")?; // Hide the cursor.
         self.write(b"\x1b[H")?; // Replace cursor at 1,1.
 
         self.draw_rows()?;
@@ -197,7 +198,7 @@ impl Editor {
         // it is dynamic
         self.write(&move_cursor)?;
 
-        self.write(b"\x1b[?25h")?; // Show the real terminal cursor.
+        self.write(b"\x1b[?25h")?; // Show the real terminal cursor
         self.flush()
     }
 
