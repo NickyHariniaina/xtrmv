@@ -27,6 +27,13 @@ use crate::{
     mode::{Mode, stringify_mode},
 };
 
+pub enum Direction {
+    Up,
+    Down,
+    Left,
+    Right,
+}
+
 pub struct Editor {
     pub _mode: RawMode,
     pub type_mode: Mode,
@@ -192,6 +199,41 @@ impl Editor {
         Ok(())
     }
 
+    pub fn move_cursor_x_times(
+        &mut self,
+        mut row_times: usize,
+        mut col_times: usize,
+        direction: Direction,
+    ) -> Result<()> {
+        match direction {
+            Direction::Up => {
+                while row_times > 0 {
+                    self.move_cursor_up();
+                    row_times -= 1;
+                }
+            }
+            Direction::Down => {
+                while row_times > 0 {
+                    self.move_cursor_down();
+                    row_times -= 1;
+                }
+            }
+            Direction::Left => {
+                while col_times > 0 {
+                    self.move_cursor_left();
+                    col_times -= 1;
+                }
+            }
+            Direction::Right => {
+                while col_times > 0 {
+                    self.move_cursor_right();
+                    col_times -= 1;
+                }
+            }
+        }
+        Ok(())
+    }
+
     pub fn try_refresh_screen(&mut self) -> Result<()> {
         self.scroll();
 
@@ -304,35 +346,51 @@ impl Editor {
         true
     }
 
+    pub fn move_cursor_left(&mut self) {
+        if self.c_inline_pos > 0 {
+            self.c_inline_pos -= 1;
+        } else if self.c_block_pos > 0 {
+            self.c_block_pos -= 1;
+            self.c_inline_pos = self.rowlen(self.c_block_pos);
+        }
+    }
+
+    pub fn move_cursor_right(&mut self) {
+        let row = self.rows.get(self.c_block_pos);
+        let rowlen = row.map_or(0, |r| r.characters.len());
+        if self.c_inline_pos < rowlen {
+            self.c_inline_pos += 1;
+        } else if row.is_some() && self.c_inline_pos == rowlen {
+            self.c_inline_pos = 0;
+            self.c_block_pos += 1;
+        }
+    }
+
+    pub fn move_cursor_down(&mut self) {
+        if self.c_block_pos < self.numrows() {
+            self.c_block_pos += 1;
+        }
+    }
+
+    pub fn move_cursor_up(&mut self) {
+        if self.c_block_pos > 0 {
+            self.c_block_pos -= 1;
+        }
+    }
+
     pub fn move_cursor_with_arrow_key(&mut self, k: Key) {
         match k {
             Key::ArrowUp => {
-                if self.c_block_pos > 0 {
-                    self.c_block_pos -= 1;
-                }
+                self.move_cursor_up();
             }
             Key::ArrowDown => {
-                if self.c_block_pos < self.numrows() {
-                    self.c_block_pos += 1;
-                }
+                self.move_cursor_down();
             }
             Key::ArrowLeft => {
-                if self.c_inline_pos > 0 {
-                    self.c_inline_pos -= 1;
-                } else if self.c_block_pos > 0 {
-                    self.c_block_pos -= 1;
-                    self.c_inline_pos = self.rowlen(self.c_block_pos);
-                }
+                self.move_cursor_left();
             }
             Key::ArrowRight => {
-                let row = self.rows.get(self.c_block_pos);
-                let rowlen = row.map_or(0, |r| r.characters.len());
-                if self.c_inline_pos < rowlen {
-                    self.c_inline_pos += 1;
-                } else if row.is_some() && self.c_inline_pos == rowlen {
-                    self.c_inline_pos = 0;
-                    self.c_block_pos += 1;
-                }
+                self.move_cursor_right();
             }
             _ => (),
         }
@@ -404,12 +462,17 @@ impl Editor {
 
     pub fn normal_process(&mut self, c: Key) -> bool {
         match c {
-            Key::Character(b'k') => self.move_cursor_with_vim_key(c),
-            Key::Character(b'j') => self.move_cursor_with_vim_key(c),
-            Key::Character(b'l') => self.move_cursor_with_vim_key(c),
-            Key::Character(b'h') => self.move_cursor_with_vim_key(c),
+            Key::Character(b'k')
+            | Key::Character(b'j')
+            | Key::Character(b'l')
+            | Key::Character(b'h') => self.move_cursor_with_vim_key(c),
             Key::Character(b'i') => {
                 self.type_mode = Mode::Insert;
+                true
+            }
+            Key::Character(b'a') => {
+                self.type_mode = Mode::Insert;
+                self.move_cursor_x_times(0, 1, Direction::Right).unwrap();
                 true
             }
             _ => true,
