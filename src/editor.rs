@@ -83,6 +83,7 @@ impl Editor {
         if self.c_block_pos < self.rowoff {
             self.rowoff = self.c_block_pos;
         }
+
         if self.c_block_pos >= self.rowoff + self.active_rows {
             self.rowoff = self.c_block_pos - self.active_rows + 1;
         }
@@ -132,29 +133,33 @@ impl Editor {
     }
 
     pub fn draw_status_bar(&mut self) -> Result<()> {
-        self.write(b"\x1b[7m")?;
+        self.write(b"\x1b[7m")?; // revert background color
         let status;
         {
             let name = self.filename.as_ref().map_or("[No name]", |s| s.as_str());
             let modified = if self.modified { " (modified)" } else { "" };
             let mut content = format!("{:.20} - {} lines{}", name, self.numrows(), modified);
+            // :.20 print only 20 letter
             content.truncate(self.active_cols);
             status = content;
         }
-        let rstatus = format!("{}/{}", self.c_block_pos + 1, self.numrows());
+        let visual_c_pos = self.c_inline_pos_with_tab + 1;
+        let right_status_content = format!("{}:{}", visual_c_pos, self.numrows());
 
         self.write(status.as_bytes())?;
         let mut len = status.len();
         while len < self.active_cols {
-            if self.active_cols - len == rstatus.len() {
-                self.write(rstatus.as_bytes())?;
+            // This part is trying to put the right status content when the active cols - len of
+            // the remain status space is equals to the right status
+            if self.active_cols - len == right_status_content.len() {
+                self.write(right_status_content.as_bytes())?;
                 break;
             } else {
                 self.write(b" ")?;
                 len += 1;
             }
         }
-        self.write(b"\x1b[m")?;
+        self.write(b"\x1b[m")?; // RESET
         self.write(b"\r\n")
     }
 
@@ -175,8 +180,8 @@ impl Editor {
     pub fn try_refresh_screen(&mut self) -> Result<()> {
         self.scroll();
 
-        self.write(b"\x1b[?25l")?;
-        self.write(b"\x1b[H")?;
+        self.write(b"\x1b[?25l")?; // Hide terminal cursor.
+        self.write(b"\x1b[H")?; // Replace cursor at 1,1.
 
         self.draw_rows()?;
         self.draw_status_bar()?;
@@ -188,9 +193,11 @@ impl Editor {
             (self.c_inline_pos_with_tab - self.coloff) + 1
         )
         .into_bytes();
+        // c_block_pos - self.rowoff is the cursor position relative to what's visible.
+        // it is dynamic
         self.write(&move_cursor)?;
 
-        self.write(b"\x1b[?25h")?;
+        self.write(b"\x1b[?25h")?; // Show the real terminal cursor.
         self.flush()
     }
 
