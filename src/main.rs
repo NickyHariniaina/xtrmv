@@ -210,7 +210,7 @@ fn main() -> Result<()> {
     editor.set_status_message("HELP: Ctrl-S = save | Ctrl-Q = quit | Ctrl-F = find");
 
     editor.refresh_screen();
-    while editor.process_keypress() {
+    while editor.try_starting_process() {
         editor.refresh_screen();
     }
     Ok(())

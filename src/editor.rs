@@ -20,7 +20,11 @@ pub const BACKSPACE: u8 = 127;
 
 use libc::{STDOUT_FILENO, TIOCGWINSZ, winsize};
 
-use crate::{QUIT_TIMES, RawMode, Row, byte_slice, editor_read_key, key::Key, mode::Mode};
+use crate::{
+    QUIT_TIMES, RawMode, Row, byte_slice, editor_read_key,
+    key::Key,
+    mode::{Mode, stringify_mode},
+};
 
 pub struct Editor {
     pub _mode: RawMode,
@@ -138,7 +142,7 @@ impl Editor {
         self.write(b"\x1b[7m")?; // revert background color
         let status;
         {
-            let mode = "NORMAL MODE".to_string();
+            let mode = stringify_mode(&self.type_mode);
             let name = self.filename.as_ref().map_or("[No name]", |s| s.as_str());
             let modified = if self.modified { " (modified)" } else { "" };
             let mut content = format!(
@@ -263,7 +267,43 @@ impl Editor {
             }
         }
     }
-    pub fn move_cursor(&mut self, k: Key) {
+
+    pub fn move_cursor_with_vim_key(&mut self, k: Key) -> bool {
+        match k {
+            Key::Character(b'k') => {
+                if self.c_block_pos > 0 {
+                    self.c_block_pos -= 1;
+                }
+            }
+            Key::Character(b'j') => {
+                if self.c_block_pos < self.numrows() {
+                    self.c_block_pos += 1;
+                }
+            }
+            Key::Character(b'h') => {
+                if self.c_inline_pos > 0 {
+                    self.c_inline_pos -= 1;
+                } else if self.c_block_pos > 0 {
+                    self.c_block_pos -= 1;
+                    self.c_inline_pos = self.rowlen(self.c_block_pos);
+                }
+            }
+            Key::Character(b'l') => {
+                let row = self.rows.get(self.c_block_pos);
+                let rowlen = row.map_or(0, |r| r.characters.len());
+                if self.c_inline_pos < rowlen {
+                    self.c_inline_pos += 1;
+                } else if row.is_some() && self.c_inline_pos == rowlen {
+                    self.c_inline_pos = 0;
+                    self.c_block_pos += 1;
+                }
+            }
+            _ => (),
+        }
+        true
+    }
+
+    pub fn move_cursor_with_arrow_key(&mut self, k: Key) {
         match k {
             Key::ArrowUp => {
                 if self.c_block_pos > 0 {
@@ -342,9 +382,40 @@ impl Editor {
         self.modified = true;
     }
 
-    pub fn process_keypress(&mut self) -> bool {
-        let c = editor_read_key(&mut self.stdin);
+    pub fn try_starting_process(&mut self) -> bool {
+        match self.type_mode {
+            Mode::Normal => self.process_keypress(Mode::Normal),
+            Mode::Insert => self.process_keypress(Mode::Insert),
+            Mode::Xtrm => self.process_keypress(Mode::Xtrm),
+            Mode::Evil => self.process_keypress(Mode::Evil),
+        }
+    }
 
+    pub fn process_keypress(&mut self, current_mode: Mode) -> bool {
+        let c = editor_read_key(&mut self.stdin);
+        match current_mode {
+            Mode::Insert => self.insert_process(c),
+            Mode::Normal => self.normal_process(c),
+            Mode::Evil => true,
+            Mode::Xtrm => true,
+        }
+    }
+
+    pub fn normal_process(&mut self, c: Key) -> bool {
+        match c {
+            Key::Character(b'k') => self.move_cursor_with_vim_key(c),
+            Key::Character(b'j') => self.move_cursor_with_vim_key(c),
+            Key::Character(b'l') => self.move_cursor_with_vim_key(c),
+            Key::Character(b'h') => self.move_cursor_with_vim_key(c),
+            Key::Character(b'i') => {
+                self.type_mode = Mode::Insert;
+                true
+            }
+            _ => true,
+        }
+    }
+
+    pub fn insert_process(&mut self, c: Key) -> bool {
         match c {
             Key::Character(b'\r') => self.insert_new_line(),
             Key::Character(CTRL_Q) => {
@@ -369,7 +440,7 @@ impl Editor {
             }
             Key::Character(CTRL_H) | Key::Character(BACKSPACE) => self.delete_char(),
             Key::Delete => {
-                self.move_cursor(Key::ArrowRight);
+                self.move_cursor_with_arrow_key(Key::ArrowRight);
                 self.delete_char();
             }
             Key::PageUp | Key::PageDown => {
@@ -381,11 +452,11 @@ impl Editor {
                     Key::ArrowDown
                 };
                 for _ in 0..(self.active_rows) {
-                    self.move_cursor(key);
+                    self.move_cursor_with_arrow_key(key);
                 }
             }
             Key::ArrowUp | Key::ArrowDown | Key::ArrowLeft | Key::ArrowRight => {
-                self.move_cursor(c);
+                self.move_cursor_with_arrow_key(c);
             }
             Key::Character(k) if (32..127).contains(&k) => self.insert_char(k as char),
             _ => (),
