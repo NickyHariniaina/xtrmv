@@ -488,6 +488,34 @@ impl Editor {
                 self.insert_new_line();
                 true
             }
+            Key::Character(b'H') => {
+                self.c_block_pos = 0;
+                self.c_inline_pos = 0;
+                true
+            }
+            Key::Character(b'L') => {
+                self.c_inline_pos = 0;
+                self.c_block_pos = self.rows.len() - 1;
+                true
+            }
+            Key::Character(b'0') => {
+                self.c_inline_pos = 0;
+                true
+            }
+            Key::Character(b'$') => {
+                self.c_inline_pos = self.rowlen(self.c_block_pos);
+                true
+            }
+            Key::Character(b'M') => {
+                let middle_pos = (self.rows.len() - 1) / 2;
+                self.c_block_pos = middle_pos;
+                true
+            }
+            Key::Character(b'G') => {
+                self.c_block_pos = self.rows.len() - 1;
+                self.c_inline_pos = 0;
+                true
+            }
             _ => true,
         }
     }
