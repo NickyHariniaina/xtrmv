@@ -475,6 +475,13 @@ impl Editor {
                 self.move_cursor_x_times(0, 1, Direction::Right).unwrap();
                 true
             }
+            Key::Character(b'o') => {
+                self.type_mode = Mode::Insert;
+                self.c_inline_pos = 0;
+                self.c_block_pos += 1;
+                true
+            }
+
             _ => true,
         }
     }
