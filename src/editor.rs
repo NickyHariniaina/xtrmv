@@ -481,7 +481,13 @@ impl Editor {
                 self.c_block_pos += 1;
                 true
             }
-
+            Key::Character(b'O') => {
+                self.type_mode = Mode::Insert;
+                self.c_block_pos -= 1;
+                self.c_inline_pos = self.rowlen(self.c_block_pos);
+                self.insert_new_line();
+                true
+            }
             _ => true,
         }
     }
