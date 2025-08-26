@@ -22,7 +22,7 @@ pub const BACKSPACE: u8 = 127;
 use libc::{STDOUT_FILENO, TIOCGWINSZ, winsize};
 
 use crate::{
-    QUIT_TIMES, RawMode, Row, byte_slice, editor_read_key,
+    RawMode, Row, byte_slice, editor_read_key,
     key::Key,
     mode::{Mode, stringify_mode},
 };
@@ -40,13 +40,13 @@ pub struct Editor {
     pub c_inline_pos: usize,
     pub c_block_pos: usize,
     pub c_inline_pos_with_tab: usize,
+    pub start_key: u8,
     pub rowoff: usize,
     pub coloff: usize,
     pub active_rows: usize,
     pub active_cols: usize,
     pub rows: Vec<Row>,
     pub modified: bool,
-    pub quit_times: u8,
     pub stdin: Stdin,
     pub stdout: Stdout,
     pub filename: Option<String>,
@@ -66,13 +66,13 @@ impl Editor {
             c_inline_pos: 0,
             c_block_pos: 0,
             c_inline_pos_with_tab: 0,
+            start_key: 0,
             rowoff: 0,
             coloff: 0,
             active_rows: (rows - 2) as usize,
             active_cols: cols as usize,
             rows: Vec::new(),
             modified: false,
-            quit_times: QUIT_TIMES,
             stdin,
             stdout,
             filename: None,
@@ -80,6 +80,7 @@ impl Editor {
             notification_timeout: Instant::now(),
         })
     }
+
     pub fn write(&mut self, buf: &[u8]) -> Result<()> {
         self.stdout.write_all(buf)
     }
@@ -123,14 +124,14 @@ impl Editor {
                     msg.truncate(self.active_cols);
                     let padding = (self.active_cols - msg.len()) / 2;
                     if padding > 0 {
-                        stdout().write_all(format!("{}", filerow).as_bytes())?;
+                        self.write(b"~")?;
                         for _ in 1..padding {
                             self.write(b" ")?;
                         }
                     }
                     self.write(msg.as_bytes())?;
                 } else {
-                    stdout().write_all(format!("{}", filerow).as_bytes())?;
+                    self.write(b"~")?;
                 }
             } else {
                 self.stdout.write_all(byte_slice(
@@ -306,6 +307,9 @@ impl Editor {
                     buf.push(c as char);
                     callback(self, &buf, k);
                 }
+                Key::Character(CTRL_C) => {
+                    self.type_mode = Mode::Normal;
+                }
                 _ => (),
             }
         }
@@ -460,6 +464,16 @@ impl Editor {
         }
     }
 
+    pub fn cmd_process(&mut self) -> bool {
+        let command = self.prompt(|v| format!(":{}", v), |_, _, _| ());
+        if let Some(cmd) = command {
+            if cmd == "q" {
+                return false;
+            }
+        }
+        true
+    }
+
     pub fn normal_process(&mut self, c: Key) -> bool {
         match c {
             Key::Character(b'k')
@@ -516,6 +530,14 @@ impl Editor {
                 self.c_inline_pos = 0;
                 true
             }
+            Key::Character(b'g') => {
+                self.start_key = b'g';
+                true
+            }
+            Key::Character(b':') => {
+                self.start_key = b':';
+                self.cmd_process()
+            }
             _ => true,
         }
     }
@@ -527,14 +549,12 @@ impl Editor {
             }
             Key::Character(b'\r') => self.insert_new_line(),
             Key::Character(CTRL_Q) => {
-                if self.modified && self.quit_times > 0 {
-                    let msg = format!(
-                        "WARNING!!! File has unsaved changes. \
-                         Press Ctrl-Q {} more times to quit.",
-                        self.quit_times
-                    );
+                if self.modified {
+                    let msg = "WARNING!!! File has unsaved changes. \
+                         Press :q! to quit without saving."
+                        .to_string();
+
                     self.set_status_message(msg);
-                    self.quit_times -= 1;
                     return true;
                 }
                 return false;
@@ -569,7 +589,6 @@ impl Editor {
             Key::Character(k) if (32..127).contains(&k) => self.insert_char(k as char),
             _ => (),
         };
-        self.quit_times = QUIT_TIMES;
         true
     }
 
