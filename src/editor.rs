@@ -13,7 +13,6 @@ macro_rules! ctrl_key {
     };
 }
 
-pub const CTRL_Q: u8 = ctrl_key!(b'q');
 pub const CTRL_C: u8 = ctrl_key!(b'c');
 pub const CTRL_H: u8 = ctrl_key!(b'h');
 pub const CTRL_S: u8 = ctrl_key!(b's');
@@ -467,7 +466,23 @@ impl Editor {
     pub fn cmd_process(&mut self) -> bool {
         let command = self.prompt(|v| format!(":{}", v), |_, _, _| ());
         if let Some(cmd) = command {
-            if cmd == "q" {
+            if cmd == "q!" {
+                return false;
+            } else if cmd == "q" {
+                if self.modified {
+                    let msg = "WARNING!!! File has unsaved changes. \
+                         Press :q! to quit without saving."
+                        .to_string();
+
+                    self.set_status_message(msg);
+                    return true;
+                } else {
+                    return false;
+                }
+            } else if cmd == "w" {
+                self.save();
+            } else if cmd == "wq" || cmd == "x" {
+                self.save();
                 return false;
             }
         }
@@ -548,18 +563,6 @@ impl Editor {
                 self.type_mode = Mode::Normal;
             }
             Key::Character(b'\r') => self.insert_new_line(),
-            Key::Character(CTRL_Q) => {
-                if self.modified {
-                    let msg = "WARNING!!! File has unsaved changes. \
-                         Press :q! to quit without saving."
-                        .to_string();
-
-                    self.set_status_message(msg);
-                    return true;
-                }
-                return false;
-            }
-            Key::Character(CTRL_S) => self.save(),
             Key::Home => {
                 self.c_inline_pos = 0;
             }
