@@ -15,7 +15,6 @@ macro_rules! ctrl_key {
 
 pub const CTRL_C: u8 = ctrl_key!(b'c');
 pub const CTRL_H: u8 = ctrl_key!(b'h');
-pub const CTRL_S: u8 = ctrl_key!(b's');
 pub const BACKSPACE: u8 = 127;
 
 use libc::{STDOUT_FILENO, TIOCGWINSZ, winsize};
@@ -512,9 +511,9 @@ impl Editor {
             }
             Key::Character(b'O') => {
                 self.type_mode = Mode::Insert;
-                self.c_block_pos -= 1;
-                self.c_inline_pos = self.rowlen(self.c_block_pos);
+                self.c_inline_pos = 0;
                 self.insert_new_line();
+                self.c_block_pos -= 1;
                 true
             }
             Key::Character(b'H') => {
@@ -549,12 +548,95 @@ impl Editor {
                 self.start_key = b'g';
                 true
             }
-            Key::Character(b':') => {
-                self.start_key = b':';
-                self.cmd_process()
+            Key::Character(b':') => self.cmd_process(),
+            Key::Character(b'w') | Key::Character(b'b') | Key::Character(b'e') => {
+                self.move_by_space(c)
             }
             _ => true,
         }
+    }
+
+    pub fn move_by_space(&mut self, k: Key) -> bool {
+        if let Some(r) = self.rows.get(self.c_block_pos) {
+            let chars: Vec<char> = r.characters.chars().collect();
+
+            loop {
+                match k {
+                    Key::Character(b'w') => {
+                        if self.c_inline_pos >= chars.len() {
+                            if self.c_block_pos + 1 < self.rows.len() {
+                                self.c_block_pos += 1;
+                                self.c_inline_pos = 0;
+                                return true;
+                            } else {
+                                break;
+                            }
+                        }
+
+                        if chars[self.c_inline_pos] == ' '
+                            && (self.c_inline_pos + 1 < chars.len()
+                                && chars[self.c_inline_pos + 1] != ' ')
+                        {
+                            self.c_inline_pos += 1;
+                            break;
+                        } else if self.c_inline_pos >= chars.len() - 1 {
+                            self.c_inline_pos = chars.len();
+                            break;
+                        } else {
+                            self.c_inline_pos += 1;
+                        }
+                    }
+
+                    Key::Character(b'b') => {
+                        if self.c_inline_pos == 0 {
+                            if self.c_block_pos == 0 {
+                                break;
+                            } else {
+                                self.c_block_pos -= 1;
+                                self.c_inline_pos = self.rowlen(self.c_block_pos);
+                                return true;
+                            }
+                        }
+
+                        if self.c_inline_pos >= chars.len() {
+                            self.c_inline_pos = chars.len() - 1;
+                        }
+
+                        if chars[self.c_inline_pos] != ' '
+                            && self.c_inline_pos > 0
+                            && chars[self.c_inline_pos - 1] == ' '
+                        {
+                            self.c_inline_pos -= 1;
+                            break;
+                        } else {
+                            self.c_inline_pos -= 1;
+                        }
+                    }
+
+                    Key::Character(b'e') => {
+                        self.c_inline_pos += 1;
+                        if self.c_inline_pos == chars.len()
+                            || (chars[self.c_inline_pos] != ' '
+                                && self.c_inline_pos == chars.len() - 1)
+                        {
+                            if self.c_block_pos + 1 < self.rows.len() {
+                                self.c_block_pos += 1;
+                                self.c_inline_pos = 0;
+                            } else {
+                                self.c_inline_pos -= 1;
+                                break;
+                            }
+                        } else if chars[self.c_inline_pos] != ' '
+                            && chars[self.c_inline_pos + 1] == ' '
+                        {
+                            break;
+                        }
+                    }
+                    _ => return true,
+                }
+            }
+        }
+        true
     }
 
     pub fn insert_process(&mut self, c: Key) -> bool {
