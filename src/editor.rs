@@ -562,7 +562,7 @@ impl Editor {
             }
             Key::Character(b'g') => {
                 self.start_key = b'g';
-                true
+                self.double_key_press(self.start_key)
             }
             Key::Character(b':') => self.cmd_process(),
             Key::Character(b'w') | Key::Character(b'b') | Key::Character(b'e') => {
@@ -570,6 +570,15 @@ impl Editor {
             }
             _ => true,
         }
+    }
+
+    pub fn double_key_press(&mut self, first_byte_key: u8) -> bool {
+        let second_key = editor_read_key(&mut self.stdin);
+        if first_byte_key == b'g' && second_key == Key::Character(b'g') {
+            self.c_block_pos = 0;
+            self.c_inline_pos = 0;
+        }
+        true
     }
 
     pub fn move_by_space(&mut self, k: Key) -> bool {
