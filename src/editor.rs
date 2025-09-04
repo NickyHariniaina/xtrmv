@@ -559,7 +559,6 @@ impl Editor {
     pub fn move_by_space(&mut self, k: Key) -> bool {
         if let Some(r) = self.rows.get(self.c_block_pos) {
             let chars: Vec<char> = r.characters.chars().collect();
-
             loop {
                 match k {
                     Key::Character(b'w') => {
@@ -610,26 +609,6 @@ impl Editor {
                             break;
                         } else {
                             self.c_inline_pos -= 1;
-                        }
-                    }
-
-                    Key::Character(b'e') => {
-                        self.c_inline_pos += 1;
-                        if self.c_inline_pos == chars.len()
-                            || (chars[self.c_inline_pos] != ' '
-                                && self.c_inline_pos == chars.len() - 1)
-                        {
-                            if self.c_block_pos + 1 < self.rows.len() {
-                                self.c_block_pos += 1;
-                                self.c_inline_pos = 0;
-                            } else {
-                                self.c_inline_pos -= 1;
-                                break;
-                            }
-                        } else if chars[self.c_inline_pos] != ' '
-                            && chars[self.c_inline_pos + 1] == ' '
-                        {
-                            break;
                         }
                     }
                     _ => return true,
