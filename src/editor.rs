@@ -114,11 +114,27 @@ impl Editor {
 
     pub fn draw_rows(&mut self) -> Result<()> {
         let numrows = self.numrows();
+        let mut count = 0;
+
         for y in 0..(self.active_rows) {
             let filerow = y + self.rowoff;
             if filerow >= numrows {
-                if self.filename.is_none() && self.rows.is_empty() && y == self.active_rows / 3 {
+                if self.filename.is_none()
+                    && self.rows.is_empty()
+                    && (y >= self.active_rows / 3 && count != 5)
+                {
                     let mut msg = "XTRMV".to_string();
+                    if count == 1 {
+                        msg = "Have fun with our CLI text editor.".to_string();
+                    } else if count == 2 {
+                        msg = "You can explore various Mode by using the keymaps".to_string();
+                    } else if count == 4 {
+                        msg = "You can read the documentation by pressing :help or quit with :q!"
+                            .to_string();
+                    } else if count == 3 {
+                        msg = "".to_string();
+                    }
+                    count += 1;
                     msg.truncate(self.active_cols);
                     let padding = (self.active_cols - msg.len()) / 2;
                     if padding > 0 {
