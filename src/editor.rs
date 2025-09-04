@@ -132,20 +132,20 @@ impl Editor {
                         msg = "You can read the documentation by pressing :help or quit with :q!"
                             .to_string();
                     } else if count == 3 {
-                        msg = "".to_string();
+                        msg = "-----------------".to_string();
                     }
                     count += 1;
                     msg.truncate(self.active_cols);
                     let padding = (self.active_cols - msg.len()) / 2;
                     if padding > 0 {
-                        self.write(b"~")?;
+                        self.write(b"-")?;
                         for _ in 1..padding {
                             self.write(b" ")?;
                         }
                     }
                     self.write(msg.as_bytes())?;
                 } else {
-                    self.write(b"~")?;
+                    self.write(b"-")?;
                 }
             } else {
                 self.stdout.write_all(byte_slice(
@@ -337,7 +337,7 @@ impl Editor {
                 }
             }
             Key::Character(b'j') => {
-                if self.c_block_pos < self.numrows() {
+                if self.c_block_pos < self.numrows() - 1 {
                     self.c_block_pos += 1;
                 }
             }
