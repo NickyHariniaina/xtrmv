@@ -385,7 +385,7 @@ impl Editor {
     }
 
     pub fn move_cursor_down(&mut self) {
-        if self.c_block_pos < self.numrows() {
+        if self.numrows() != 0 && self.c_block_pos < self.numrows() - 1 {
             self.c_block_pos += 1;
         }
     }
@@ -570,7 +570,11 @@ impl Editor {
             }
             Key::Character(x) => {
                 if x.is_ascii_digit() {
-                    return self.multiple_key_press(x);
+                    let (repetion_count, last_pressed_key) = self.multiple_key_press(x);
+                    if last_pressed_key == b'j' {
+                        self.move_cursor_x_times(repetion_count, 0, Direction::Down)
+                            .unwrap();
+                    }
                 }
                 true
             }
@@ -578,18 +582,20 @@ impl Editor {
         }
     }
 
-    pub fn multiple_key_press(&mut self, first_key: u8) -> bool {
+    pub fn multiple_key_press(&mut self, first_key: u8) -> (usize, u8) {
         let mut keys_string = String::from((first_key - 48).to_string().as_str());
-        let mut number = 0;
+        let mut number: usize = 0;
         let mut key = editor_read_key(&mut self.stdin);
+        let mut last_key_press: u8 = 0;
         while let Key::Character(x) = key {
             if !x.is_ascii_digit() {
-                number = match keys_string.parse::<i64>() {
+                number = match keys_string.parse::<usize>() {
                     Ok(n) => n,
                     Err(_e) => {
-                        return false;
+                        return (0, 0);
                     }
                 };
+                last_key_press = x;
                 break;
             } else {
                 let current_byte_to_number = x - 48;
@@ -597,7 +603,7 @@ impl Editor {
             }
             key = editor_read_key(&mut self.stdin);
         }
-        true
+        (number, last_key_press)
     }
 
     pub fn double_key_press(&mut self, first_byte_key: u8) -> bool {
