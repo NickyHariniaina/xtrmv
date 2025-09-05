@@ -337,7 +337,7 @@ impl Editor {
                 }
             }
             Key::Character(b'j') => {
-                if self.c_block_pos < self.numrows() - 1 {
+                if self.numrows() != 0 && self.c_block_pos < self.numrows() - 1 {
                     self.c_block_pos += 1;
                 }
             }
@@ -577,6 +577,11 @@ impl Editor {
         if first_byte_key == b'g' && second_key == Key::Character(b'g') {
             self.c_block_pos = 0;
             self.c_inline_pos = 0;
+        //TODO::
+        //  - I should do a loop and transform number typed to joined string, and then parse them
+        //  to u8 again.
+        } else if first_byte_key == 1 && second_key == Key::Character(b'j') {
+            return false;
         }
         true
     }
