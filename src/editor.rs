@@ -568,8 +568,36 @@ impl Editor {
             Key::Character(b'w') | Key::Character(b'b') | Key::Character(b'e') => {
                 self.move_by_space(c)
             }
+            Key::Character(x) => {
+                if x.is_ascii_digit() {
+                    return self.multiple_key_press(x);
+                }
+                true
+            }
             _ => true,
         }
+    }
+
+    pub fn multiple_key_press(&mut self, first_key: u8) -> bool {
+        let mut keys_string = String::from((first_key - 48).to_string().as_str());
+        let mut number = 0;
+        let mut key = editor_read_key(&mut self.stdin);
+        while let Key::Character(x) = key {
+            if !x.is_ascii_digit() {
+                number = match keys_string.parse::<i64>() {
+                    Ok(n) => n,
+                    Err(_e) => {
+                        return false;
+                    }
+                };
+                break;
+            } else {
+                let current_byte_to_number = x - 48;
+                keys_string.push_str(current_byte_to_number.to_string().as_str());
+            }
+            key = editor_read_key(&mut self.stdin);
+        }
+        true
     }
 
     pub fn double_key_press(&mut self, first_byte_key: u8) -> bool {
@@ -577,11 +605,6 @@ impl Editor {
         if first_byte_key == b'g' && second_key == Key::Character(b'g') {
             self.c_block_pos = 0;
             self.c_inline_pos = 0;
-        //TODO::
-        //  - I should do a loop and transform number typed to joined string, and then parse them
-        //  to u8 again.
-        } else if first_byte_key == 1 && second_key == Key::Character(b'j') {
-            return false;
         }
         true
     }
