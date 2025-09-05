@@ -574,6 +574,15 @@ impl Editor {
                     if last_pressed_key == b'j' {
                         self.move_cursor_x_times(repetion_count, 0, Direction::Down)
                             .unwrap();
+                    } else if last_pressed_key == b'k' {
+                        self.move_cursor_x_times(repetion_count, 0, Direction::Up)
+                            .unwrap();
+                    } else if last_pressed_key == b'l' {
+                        self.move_cursor_x_times(0, repetion_count, Direction::Right)
+                            .unwrap();
+                    } else if last_pressed_key == b'h' {
+                        self.move_cursor_x_times(0, repetion_count, Direction::Left)
+                            .unwrap();
                     }
                 }
                 true
