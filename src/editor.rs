@@ -568,6 +568,11 @@ impl Editor {
             Key::Character(b'w') | Key::Character(b'b') | Key::Character(b'e') => {
                 self.move_by_space(c)
             }
+            Key::Character(b'A') => {
+                self.c_inline_pos = self.rowlen(self.c_block_pos);
+                self.type_mode = Mode::Insert;
+                true
+            }
             Key::Character(bkey) => {
                 if bkey.is_ascii_digit() {
                     let (repetion_count, last_pressed_key) = self.multiple_key_press(bkey);
