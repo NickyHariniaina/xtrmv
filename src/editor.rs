@@ -463,7 +463,7 @@ impl Editor {
         match self.type_mode {
             Mode::Normal => self.process_keypress(Mode::Normal),
             Mode::Insert => self.process_keypress(Mode::Insert),
-            Mode::Xtrm => self.process_keypress(Mode::Xtrm),
+            Mode::Multiple => self.process_keypress(Mode::Multiple),
             Mode::Evil => self.process_keypress(Mode::Evil),
         }
     }
@@ -473,8 +473,8 @@ impl Editor {
         match current_mode {
             Mode::Insert => self.insert_process(c),
             Mode::Normal => self.normal_process(c),
+            Mode::Multiple => true,
             Mode::Evil => true,
-            Mode::Xtrm => true,
         }
     }
 
