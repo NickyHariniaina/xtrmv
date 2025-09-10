@@ -568,9 +568,9 @@ impl Editor {
             Key::Character(b'w') | Key::Character(b'b') | Key::Character(b'e') => {
                 self.move_by_space(c)
             }
-            Key::Character(x) => {
-                if x.is_ascii_digit() {
-                    let (repetion_count, last_pressed_key) = self.multiple_key_press(x);
+            Key::Character(bkey) => {
+                if bkey.is_ascii_digit() {
+                    let (repetion_count, last_pressed_key) = self.multiple_key_press(bkey);
                     if last_pressed_key == b'j' {
                         self.move_cursor_x_times(repetion_count, 0, Direction::Down)
                             .unwrap();
