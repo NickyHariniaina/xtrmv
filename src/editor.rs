@@ -14,7 +14,7 @@ macro_rules! ctrl_key {
 }
 
 pub const CTRL_C: u8 = ctrl_key!(b'c');
-pub const CTRL_H: u8 = ctrl_key!(b'h');
+pub const CTRL_W: u8 = ctrl_key!(b'w');
 pub const BACKSPACE: u8 = 127;
 
 use libc::{STDOUT_FILENO, TIOCGWINSZ, winsize};
