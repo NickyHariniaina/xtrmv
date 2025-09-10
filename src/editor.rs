@@ -439,6 +439,20 @@ impl Editor {
         self.c_inline_pos = 0;
     }
 
+    pub fn delete_char_by_space(&mut self) {
+        if let Some(r) = self.rows.get(self.c_block_pos) {
+            let chars: Vec<char> = r.characters.chars().collect();
+            loop {
+                if self.c_inline_pos == 0 {
+                    break;
+                }
+                self.delete_char();
+                if chars[self.c_inline_pos] == ' ' {
+                    break;
+                }
+            }
+        }
+    }
     pub fn delete_char(&mut self) {
         if self.c_block_pos == self.rows.len() {
             return;
@@ -700,6 +714,10 @@ impl Editor {
 
     pub fn insert_process(&mut self, c: Key) -> bool {
         match c {
+            Key::Character(CTRL_W) => {
+                self.delete_char_by_space();
+                return true;
+            }
             Key::Character(CTRL_C) => {
                 self.type_mode = Mode::Normal;
             }
@@ -712,6 +730,11 @@ impl Editor {
             }
             Key::ArrowUp | Key::ArrowDown | Key::ArrowLeft | Key::ArrowRight => {
                 self.move_cursor_with_arrow_key(c);
+            }
+            Key::Character(b'(') => {
+                self.insert_char('(');
+                self.insert_char(')');
+                self.c_inline_pos -= 1;
             }
             Key::Character(k) if (32..127).contains(&k) => self.insert_char(k as char),
             _ => (),
