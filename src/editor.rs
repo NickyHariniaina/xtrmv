@@ -1,6 +1,5 @@
 use std::{
     borrow::Cow,
-    cmp,
     fs::{File, OpenOptions},
     io::{BufRead, BufReader, Error, Result, Stdin, Stdout, Write, stdin, stdout},
     time::{Duration, Instant},
