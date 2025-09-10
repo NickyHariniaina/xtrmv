@@ -686,11 +686,19 @@ impl Editor {
         true
     }
 
+    pub fn insert_tab(&mut self) {
+        for _i in 0..2 {
+            self.insert_char(' ');
+            self.write(b" ").unwrap();
+        }
+    }
+
     pub fn insert_process(&mut self, c: Key) -> bool {
         match c {
             Key::Character(CTRL_C) => {
                 self.type_mode = Mode::Normal;
             }
+            Key::Character(b'\t') => self.insert_tab(),
             Key::Character(b'\r') => self.insert_new_line(),
             Key::Home => {
                 self.c_inline_pos = 0;
