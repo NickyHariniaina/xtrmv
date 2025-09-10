@@ -521,8 +521,8 @@ impl Editor {
             }
             Key::Character(b'o') => {
                 self.type_mode = Mode::Insert;
-                self.c_inline_pos = 0;
-                self.c_block_pos += 1;
+                self.c_inline_pos = self.rowlen(self.c_block_pos);
+                self.insert_new_line();
                 true
             }
             Key::Character(b'O') => {
