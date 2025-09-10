@@ -700,28 +700,10 @@ impl Editor {
             }
             Key::Character(b'\t') => self.insert_tab(),
             Key::Character(b'\r') => self.insert_new_line(),
-            Key::Home => {
-                self.c_inline_pos = 0;
-            }
-            Key::End => {
-                self.c_inline_pos = self.rowlen(self.c_block_pos);
-            }
             Key::Character(CTRL_H) | Key::Character(BACKSPACE) => self.delete_char(),
             Key::Delete => {
                 self.move_cursor_with_arrow_key(Key::ArrowRight);
                 self.delete_char();
-            }
-            Key::PageUp | Key::PageDown => {
-                let key = if c == Key::PageUp {
-                    self.c_block_pos = self.rowoff;
-                    Key::ArrowUp
-                } else {
-                    self.c_block_pos = cmp::min(self.rowoff + self.active_rows - 1, self.numrows());
-                    Key::ArrowDown
-                };
-                for _ in 0..(self.active_rows) {
-                    self.move_cursor_with_arrow_key(key);
-                }
             }
             Key::ArrowUp | Key::ArrowDown | Key::ArrowLeft | Key::ArrowRight => {
                 self.move_cursor_with_arrow_key(c);
