@@ -524,6 +524,11 @@ impl Editor {
             | Key::Character(b'j')
             | Key::Character(b'l')
             | Key::Character(b'h') => self.move_cursor_with_vim_key(c),
+            Key::Character(b'x') => {
+                self.c_inline_pos += 1;
+                self.delete_char();
+                true
+            }
             Key::Character(b'i') => {
                 self.type_mode = Mode::Insert;
                 true
