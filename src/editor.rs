@@ -519,6 +519,8 @@ impl Editor {
             } else if cmd == "wq" || cmd == "x" {
                 self.save();
                 return false;
+            } else if cmd == "help" {
+                return false;
             }
         }
         true
@@ -550,8 +552,19 @@ impl Editor {
                 return true;
             }
             Key::Character(b'x') => {
-                while self.c_inline_pos != self.c_inline_start_select
-                    || self.c_block_pos != self.c_block_start_select
+                if self.c_block_pos < self.c_block_start_select
+                    || (self.c_block_pos == self.c_block_start_select
+                        && self.c_inline_pos < self.c_inline_start_select)
+                {
+                    let temp_x = self.c_inline_pos;
+                    let temp_y = self.c_block_pos;
+                    self.c_inline_pos = self.c_inline_start_select;
+                    self.c_block_pos = self.c_block_start_select;
+                    self.c_inline_start_select = temp_x;
+                    self.c_block_start_select = temp_y;
+                }
+                while (self.c_inline_pos, self.c_block_pos)
+                    != (self.c_inline_start_select, self.c_block_start_select)
                 {
                     self.delete_char();
                 }
