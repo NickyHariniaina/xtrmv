@@ -518,6 +518,8 @@ impl Editor {
         true
     }
 
+    pub fn select_process(&mut self) {}
+
     pub fn normal_process(&mut self, c: Key) -> bool {
         match c {
             Key::Character(b'k')
@@ -527,6 +529,10 @@ impl Editor {
             Key::Character(b'x') => {
                 self.c_inline_pos += 1;
                 self.delete_char();
+                true
+            }
+            Key::Character(b'v') => {
+                self.select_process();
                 true
             }
             Key::Character(b'i') => {
