@@ -557,6 +557,9 @@ impl Editor {
                 }
                 true
             }
+            Key::Character(b'w') | Key::Character(b'b') | Key::Character(b'e') => {
+                self.move_by_space(c)
+            }
             _ => true,
         };
         true
