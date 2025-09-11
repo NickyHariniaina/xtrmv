@@ -524,7 +524,43 @@ impl Editor {
         true
     }
 
-    pub fn select_process(&mut self, c: Key) {}
+    pub fn get_separated_char_for_row(&mut self) -> Vec<char> {
+        if let Some(r) = self.rows.get(self.c_block_pos) {
+            r.characters.chars().collect()
+        } else {
+            vec![]
+        }
+    }
+
+    pub fn select_process(&mut self, c: Key) -> bool {
+        match c {
+            Key::Character(CTRL_C) => {
+                self.type_mode = Mode::Normal;
+                self.c_inline_pos = self.c_inline_start_select;
+                self.c_block_pos = self.c_block_start_select;
+                self.c_inline_start_select = 0;
+                self.c_block_start_select = 0;
+                return true;
+            }
+            Key::Character(b'h')
+            | Key::Character(b'j')
+            | Key::Character(b'k')
+            | Key::Character(b'l') => {
+                self.move_cursor_with_vim_key(c);
+                return true;
+            }
+            Key::Character(b'x') => {
+                while self.c_inline_pos != self.c_inline_start_select
+                    || self.c_block_pos != self.c_block_start_select
+                {
+                    self.delete_char();
+                }
+                true
+            }
+            _ => true,
+        };
+        true
+    }
 
     pub fn normal_process(&mut self, c: Key) -> bool {
         match c {
@@ -538,7 +574,9 @@ impl Editor {
                 true
             }
             Key::Character(b'v') => {
-                self.select_process();
+                self.c_inline_start_select = self.c_inline_pos;
+                self.c_block_start_select = self.c_block_pos;
+                self.type_mode = Mode::Select;
                 true
             }
             Key::Character(b'i') => {
