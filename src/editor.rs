@@ -38,6 +38,8 @@ pub struct Editor {
     pub c_inline_pos: usize,
     pub c_block_pos: usize,
     pub c_inline_pos_with_tab: usize,
+    pub c_inline_start_select: usize,
+    pub c_block_start_select: usize,
     pub start_key: u8,
     pub rowoff: usize,
     pub coloff: usize,
@@ -67,6 +69,8 @@ impl Editor {
             start_key: 0,
             rowoff: 0,
             coloff: 0,
+            c_inline_start_select: 0,
+            c_block_start_select: 0,
             active_rows: (rows - 2) as usize,
             active_cols: cols as usize,
             rows: Vec::new(),
@@ -475,6 +479,7 @@ impl Editor {
 
     pub fn try_starting_process(&mut self) -> bool {
         match self.type_mode {
+            Mode::Select => self.process_keypress(Mode::Select),
             Mode::Normal => self.process_keypress(Mode::Normal),
             Mode::Insert => self.process_keypress(Mode::Insert),
             Mode::Multiple => self.process_keypress(Mode::Multiple),
@@ -487,6 +492,7 @@ impl Editor {
         match current_mode {
             Mode::Insert => self.insert_process(c),
             Mode::Normal => self.normal_process(c),
+            Mode::Select => self.select_process(c),
             Mode::Multiple => true,
             Mode::Evil => true,
         }
@@ -518,7 +524,7 @@ impl Editor {
         true
     }
 
-    pub fn select_process(&mut self) {}
+    pub fn select_process(&mut self, c: Key) {}
 
     pub fn normal_process(&mut self, c: Key) -> bool {
         match c {
