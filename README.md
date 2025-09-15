@@ -11,7 +11,8 @@ cargo install xtrmv
 ```
 
 - Via GitHub release. [here](https://github.com/NickyHariniaina/xtrmv/releases/tag/cli)
-  🔗 Features and Usage.
+
+🔗 Features and Usage.
 
 - Multiple Modes: Normal - Insert - Select.
 - Command Support:
