@@ -551,7 +551,7 @@ impl Editor {
                 self.move_cursor_with_vim_key(c);
                 return true;
             }
-            Key::Character(b'x') => {
+            Key::Character(b'x') | Key::Character(b'd') => {
                 if self.c_block_pos < self.c_block_start_select
                     || (self.c_block_pos == self.c_block_start_select
                         && self.c_inline_pos < self.c_inline_start_select)
