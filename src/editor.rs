@@ -483,11 +483,8 @@ impl Editor {
     pub fn try_starting_process(&mut self) -> bool {
         match self.type_mode {
             Mode::Select => self.process_keypress(Mode::Select),
-            Mode::LineSelect => self.process_keypress(Mode::LineSelect),
             Mode::Normal => self.process_keypress(Mode::Normal),
             Mode::Insert => self.process_keypress(Mode::Insert),
-            Mode::Multiple => self.process_keypress(Mode::Multiple),
-            Mode::Evil => self.process_keypress(Mode::Evil),
         }
     }
 
@@ -497,31 +494,46 @@ impl Editor {
             Mode::Insert => self.insert_process(c),
             Mode::Normal => self.normal_process(c),
             Mode::Select => self.select_process(c),
-            Mode::LineSelect => self.line_select_process(c),
-            Mode::Multiple => true,
-            Mode::Evil => true,
         }
     }
 
-    pub fn line_select_process(&mut self, c: Key) -> bool {
-        match c {
-            Key::Character(CTRL_C) => {
-                self.type_mode = Mode::Normal;
-                self.c_block_pos = self.c_block_start_select;
-                self.c_block_start_select = 0;
-                return true;
-            }
-            Key::Character(b'j') | Key::Character(b'k') => {
-                self.move_cursor_with_vim_key(c);
-                return true;
-            }
-            Key::Character(b'x') | Key::Character(b'd') => {
-                return true;
-            }
-            _ => true,
-        };
-        true
-    }
+    // pub fn line_select_process(&mut self, c: Key) -> bool {
+    //     match c {
+    //         Key::Character(CTRL_C) => {
+    //             self.type_mode = Mode::Normal;
+    //             self.c_block_pos = self.c_block_start_select;
+    //             self.c_block_start_select = 0;
+    //             return true;
+    //         }
+    //         Key::Character(b'j') | Key::Character(b'k') => {
+    //             self.move_cursor_with_vim_key(c);
+    //             return true;
+    //         }
+    //         Key::Character(b'x') | Key::Character(b'd') => {
+    //             if self.c_block_start_select > self.c_block_pos {
+    //                 while self.c_block_pos != self.c_block_start_select + 1 {
+    //                     self.c_inline_pos = self.rowlen(self.c_block_pos);
+    //                     while self.c_inline_pos != 0 {
+    //                         self.delete_char();
+    //                     }
+    //                     self.c_block_pos += 1;
+    //                 }
+    //             } else if self.c_block_start_select < self.c_block_pos {
+    //                 while self.c_block_pos != self.c_block_start_select {
+    //                     self.c_inline_pos = self.rowlen(self.c_block_pos);
+    //
+    //                     while self.c_inline_pos != 0 {
+    //                         self.delete_char();
+    //                     }
+    //                     self.c_block_pos -= 1;
+    //                 }
+    //             }
+    //             return true;
+    //         }
+    //         _ => true,
+    //     };
+    //     true
+    // }
 
     pub fn cmd_process(&mut self) -> bool {
         let command = self.prompt(|v| format!(":{}", v), |_, _, _| ());
@@ -551,13 +563,13 @@ impl Editor {
         true
     }
 
-    pub fn get_separated_char_for_row(&mut self) -> Vec<char> {
-        if let Some(r) = self.rows.get(self.c_block_pos) {
-            r.characters.chars().collect()
-        } else {
-            vec![]
-        }
-    }
+    // pub fn get_separated_char_for_row(&mut self) -> Vec<char> {
+    //     if let Some(r) = self.rows.get(self.c_block_pos) {
+    //         r.characters.chars().collect()
+    //     } else {
+    //         vec![]
+    //     }
+    // }
 
     pub fn select_process(&mut self, c: Key) -> bool {
         match c {

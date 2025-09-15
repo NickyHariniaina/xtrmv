@@ -1,3 +1,10 @@
 function getMyName(name: string) => {
-  return "";
+  return "name";
+}
+
+const Page: React.FC = (
+  { children }:
+  { children: React.ReactNode }
+) => {
+  return <></>
 }
