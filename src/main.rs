@@ -14,8 +14,6 @@ fn main() -> Result<()> {
         editor.open(&filename)?;
     }
 
-    editor.set_status_message("HELP: Ctrl-S = save | Ctrl-Q = quit | Ctrl-F = find");
-
     editor.refresh_screen();
     while editor.try_starting_process() {
         editor.refresh_screen();
