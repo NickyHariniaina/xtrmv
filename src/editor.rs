@@ -1,7 +1,13 @@
+use crate::{
+    raw::RawMode,
+    row::Row,
+    utils::{byte_slice, clear_screen, editor_read_key, get_window_size},
+};
+use std::io::{BufRead, BufReader};
 use std::{
     borrow::Cow,
     fs::{File, OpenOptions},
-    io::{BufRead, BufReader, Error, Result, Stdin, Stdout, Write, stdin, stdout},
+    io::{Result, Stdin, Stdout, Write, stdin, stdout},
     time::{Duration, Instant},
 };
 
@@ -17,10 +23,7 @@ pub const CTRL_W: u8 = ctrl_key!(b'w');
 pub const CTRL_H: u8 = ctrl_key!(b'h');
 pub const BACKSPACE: u8 = 127;
 
-use libc::{STDOUT_FILENO, TIOCGWINSZ, winsize};
-
 use crate::{
-    RawMode, Row, byte_slice, editor_read_key,
     key::Key,
     mode::{Mode, stringify_mode},
 };
@@ -884,25 +887,4 @@ impl Drop for Editor {
     fn drop(&mut self) {
         clear_screen(&mut self.stdout).expect("Failed to clear screen");
     }
-}
-
-pub fn clear_screen(stdout: &mut Stdout) -> Result<()> {
-    stdout.write_all(b"\x1b[2J")?;
-    stdout.write_all(b"\x1b[H")?;
-    stdout.flush()
-}
-
-pub fn get_window_size() -> Result<(u16, u16)> {
-    let ws = winsize {
-        ws_col: 0,
-        ws_row: 0,
-        ws_xpixel: 0,
-        ws_ypixel: 0,
-    };
-    unsafe {
-        if libc::ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == -1 || ws.ws_col == 0 {
-            return Err(Error::other("get_window_size: ioctl failed"));
-        }
-    }
-    Ok((ws.ws_row, ws.ws_col))
 }
