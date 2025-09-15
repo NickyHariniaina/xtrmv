@@ -10,7 +10,7 @@
 cargo install xtrmv
 ```
 
-- Via GitHub release. [here](https://github.com/NickyHariniaina/xtrmv/releases/tag/v0.1)
+- Via GitHub release. [here](https://github.com/NickyHariniaina/xtrmv/releases/tag/v.0.1)
 
 🔗 Features and Usage.
 
