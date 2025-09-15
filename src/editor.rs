@@ -479,7 +479,7 @@ impl Editor {
 
     pub fn try_starting_process(&mut self) -> bool {
         match self.type_mode {
-            Mode::Select => self.process_keypress(Mode::Select),
+            Mode::Select | Mode::LineSelect => self.process_keypress(Mode::Select),
             Mode::Normal => self.process_keypress(Mode::Normal),
             Mode::Insert => self.process_keypress(Mode::Insert),
             Mode::Multiple => self.process_keypress(Mode::Multiple),
@@ -492,7 +492,7 @@ impl Editor {
         match current_mode {
             Mode::Insert => self.insert_process(c),
             Mode::Normal => self.normal_process(c),
-            Mode::Select => self.select_process(c),
+            Mode::Select | Mode::LineSelect => self.select_process(c),
             Mode::Multiple => true,
             Mode::Evil => true,
         }
