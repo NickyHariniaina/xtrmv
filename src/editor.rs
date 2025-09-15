@@ -501,6 +501,22 @@ impl Editor {
     }
 
     pub fn line_select_process(&mut self, c: Key) -> bool {
+        match c {
+            Key::Character(CTRL_C) => {
+                self.type_mode = Mode::Normal;
+                self.c_block_pos = self.c_block_start_select;
+                self.c_block_start_select = 0;
+                return true;
+            }
+            Key::Character(b'j') | Key::Character(b'k') => {
+                self.move_cursor_with_vim_key(c);
+                return true;
+            }
+            Key::Character(b'x') | Key::Character(b'd') => {
+                return true;
+            }
+            _ => true,
+        };
         true
     }
 
