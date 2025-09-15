@@ -2,6 +2,16 @@
 
 **xtrmv** is a minimalist CLI Text Editor Written In Rust inspired by Vi.
 
+## How to install.
+
+- Via Cargo. (If you have Cargo Installed)
+
+```bash
+cargo install xtrmv
+```
+
+- Via GitHub release.
+
 🔗 Features and Usage.
 
 - Multiple Modes: Normal - Insert - Select.

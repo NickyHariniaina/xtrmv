@@ -17,14 +17,14 @@ pub fn clear_screen(stdout: &mut Stdout) -> Result<()> {
 }
 
 pub fn get_window_size() -> Result<(u16, u16)> {
-    let ws = winsize {
+    let mut ws = winsize {
         ws_col: 0,
         ws_row: 0,
         ws_xpixel: 0,
         ws_ypixel: 0,
     };
     unsafe {
-        if libc::ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == -1 || ws.ws_col == 0 {
+        if libc::ioctl(STDOUT_FILENO, TIOCGWINSZ, &mut ws) == -1 || ws.ws_col == 0 {
             return Err(Error::other("get_window_size: ioctl failed"));
         }
     }
