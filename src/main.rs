@@ -6,6 +6,7 @@ mod key;
 mod mode;
 mod raw;
 mod row;
+mod filetype;
 use crate::editor::Editor;
 
 fn main() -> Result<()> {

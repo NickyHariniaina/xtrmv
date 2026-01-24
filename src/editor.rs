@@ -1,5 +1,6 @@
 // TODO: Think about refactoring this file.
 use crate::{
+    filetype::{get_filetype, load_filetype},
     raw::RawMode,
     row::Row,
     utils::{byte_slice, clear_screen, editor_read_key, get_window_size},
@@ -53,6 +54,7 @@ pub struct Editor {
     pub stdin: Stdin,
     pub stdout: Stdout,
     pub filename: Option<String>,
+    pub filetype: String,
     pub notification: String,
     pub notification_timeout: Instant,
 }
@@ -66,6 +68,7 @@ impl Editor {
         Ok(Self {
             _mode: mode,
             type_mode: Mode::Normal,
+            filetype: "none".to_string(),
             c_inline_pos: 0,
             c_block_pos: 0,
             c_inline_pos_with_tab: 0,
@@ -528,6 +531,9 @@ impl Editor {
                 return false;
             } else if cmd == "help" {
                 return false;
+            } else if cmd == "set filetype" {
+                self.set_status_message(self.filetype.clone());
+                return true;
             }
         }
         true
@@ -826,6 +832,9 @@ impl Editor {
         let file = BufReader::new(&f);
         let results: Result<Vec<Row>> = file.lines().map(|r| r.map(Row::new)).collect();
         self.rows = results?;
+        let map = load_filetype("assets/filetype.json");
+        let filetype = get_filetype(&filename, &map);
+        self.filetype = filetype.clone();
         self.modified = false;
         Ok(())
     }
@@ -847,6 +856,9 @@ impl Editor {
         file.set_len(data.len() as u64)?;
         file.write_all(&data)?;
         self.modified = false;
+        let map = load_filetype("assets/filetype.json");
+        let filetype = get_filetype(&filename, &map);
+        self.filetype = filetype.clone();
         Ok(data.len())
     }
 

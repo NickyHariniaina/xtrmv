@@ -1,0 +1,17 @@
+{
+    "rs": "Rust",
+    "js": "JavaScript",
+    "jsx": "JavaScript",
+    "tsx": "TypeScript",
+    "ts": "TypeScript",
+    "py": "Python",
+    "java": "Java",
+    "jv": "Java",
+    "c": "C",
+    "cpp": "C++",
+    "go": "Go",
+    "rb": "Ruby",
+    "php": "PHP",
+    "html": "HTML",
+    "css": "CSS"
+}
