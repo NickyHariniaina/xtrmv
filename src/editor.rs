@@ -1,4 +1,3 @@
-// TODO: Think about refactoring this file.
 use crate::{
     filetype::{get_filetype, load_filetype},
     raw::RawMode,
@@ -539,14 +538,6 @@ impl Editor {
         true
     }
 
-    // pub fn get_separated_char_for_row(&mut self) -> Vec<char> {
-    //     if let Some(r) = self.rows.get(self.c_block_pos) {
-    //         r.characters.chars().collect()
-    //     } else {
-    //         vec![]
-    //     }
-    // }
-
     pub fn select_process(&mut self, c: Key) -> bool {
         match c {
             Key::Character(CTRL_C) => {
@@ -833,7 +824,7 @@ impl Editor {
         let results: Result<Vec<Row>> = file.lines().map(|r| r.map(Row::new)).collect();
         self.rows = results?;
         let map = load_filetype("assets/filetype.json");
-        let filetype = get_filetype(&filename, &map);
+        let filetype = get_filetype(filename, &map);
         self.filetype = filetype.clone();
         self.modified = false;
         Ok(())
@@ -857,7 +848,7 @@ impl Editor {
         file.write_all(&data)?;
         self.modified = false;
         let map = load_filetype("assets/filetype.json");
-        let filetype = get_filetype(&filename, &map);
+        let filetype = get_filetype(filename, &map);
         self.filetype = filetype.clone();
         Ok(data.len())
     }
