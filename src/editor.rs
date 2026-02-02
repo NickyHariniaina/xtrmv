@@ -41,6 +41,7 @@ pub struct Editor {
     pub c_inline_pos: usize,
     pub c_block_pos: usize,
     pub c_inline_pos_with_tab: usize,
+    pub initial_colorcolumn: usize,
     pub c_inline_start_select: usize,
     pub c_block_start_select: usize,
     pub start_key: u8,
@@ -65,6 +66,7 @@ impl Editor {
         let stdin = stdin();
         let stdout = stdout();
         Ok(Self {
+            initial_colorcolumn: 100,
             _mode: mode,
             type_mode: Mode::Normal,
             filetype: "none".to_string(),
@@ -163,7 +165,6 @@ impl Editor {
                     self.active_cols,
                 ))?;
             }
-
             self.write(b"\x1b[K")?;
             self.write(b"\r\n")?;
         }
@@ -533,6 +534,7 @@ impl Editor {
             } else if cmd == "set filetype" {
                 self.set_status_message(self.filetype.clone());
                 return true;
+            } else if cmd == "set colorcolumn" {
             }
         }
         true
