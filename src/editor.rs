@@ -1,4 +1,5 @@
 use crate::{
+    filetype::{get_filetype, load_filetype},
     raw::RawMode,
     row::Row,
     utils::{byte_slice, clear_screen, editor_read_key, get_window_size},
@@ -7,7 +8,7 @@ use std::io::{BufRead, BufReader};
 use std::{
     borrow::Cow,
     fs::{File, OpenOptions},
-    io::{Result, Stdin, Stdout, Write, stdin, stdout},
+    io::{stdin, stdout, Result, Stdin, Stdout, Write},
     time::{Duration, Instant},
 };
 
@@ -17,7 +18,6 @@ macro_rules! ctrl_key {
         $k & 0x1f
     };
 }
-
 pub const CTRL_C: u8 = ctrl_key!(b'c');
 pub const CTRL_W: u8 = ctrl_key!(b'w');
 pub const CTRL_H: u8 = ctrl_key!(b'h');
@@ -25,7 +25,7 @@ pub const BACKSPACE: u8 = 127;
 
 use crate::{
     key::Key,
-    mode::{Mode, stringify_mode},
+    mode::{stringify_mode, Mode},
 };
 
 pub enum Direction {
@@ -37,10 +37,12 @@ pub enum Direction {
 
 pub struct Editor {
     pub _mode: RawMode,
+    pub line_number_width: usize,
     pub type_mode: Mode,
     pub c_inline_pos: usize,
     pub c_block_pos: usize,
     pub c_inline_pos_with_tab: usize,
+    pub initial_colorcolumn: usize,
     pub c_inline_start_select: usize,
     pub c_block_start_select: usize,
     pub start_key: u8,
@@ -53,6 +55,7 @@ pub struct Editor {
     pub stdin: Stdin,
     pub stdout: Stdout,
     pub filename: Option<String>,
+    pub filetype: String,
     pub notification: String,
     pub notification_timeout: Instant,
 }
@@ -64,8 +67,11 @@ impl Editor {
         let stdin = stdin();
         let stdout = stdout();
         Ok(Self {
+            initial_colorcolumn: 100,
             _mode: mode,
+            line_number_width: 4,
             type_mode: Mode::Normal,
+            filetype: "none".to_string(),
             c_inline_pos: 0,
             c_block_pos: 0,
             c_inline_pos_with_tab: 0,
@@ -155,13 +161,23 @@ impl Editor {
                     self.write(b"-")?;
                 }
             } else {
+                let line_number = format!(
+                    "{:>width$} ",
+                    filerow + 1,
+                    width = self.line_number_width - 1
+                );
+
+                self.write(b"\x1b[2m\x1b[90m")?;
+                self.write(line_number.as_bytes())?;
+                self.write(b"\x1b[22m\x1b[39m")?;
+
+                let content_width = self.active_cols.saturating_sub(self.line_number_width);
                 self.stdout.write_all(byte_slice(
                     &self.rows[filerow].render,
                     self.coloff,
-                    self.active_cols,
+                    content_width,
                 ))?;
             }
-
             self.write(b"\x1b[K")?;
             self.write(b"\r\n")?;
         }
@@ -268,8 +284,8 @@ impl Editor {
 
         let move_cursor = format!(
             "\x1b[{};{}H",
-            (self.c_block_pos - self.rowoff) + 1,
-            (self.c_inline_pos_with_tab - self.coloff) + 1
+            (self.c_block_pos.saturating_sub(self.rowoff) + 1),
+            (self.c_inline_pos_with_tab.saturating_sub(self.coloff)) + 1 + self.line_number_width
         )
         .into_bytes();
         // c_block_pos - self.rowoff is the cursor position relative to what's visible.
@@ -431,6 +447,7 @@ impl Editor {
             self.rows.push(Row::new(""));
         }
         self.rows[self.c_block_pos].insert_char(self.c_inline_pos, c);
+        self.rows[self.c_block_pos].update_render_with_syntax(&self.filetype);
         self.c_inline_pos += 1;
         self.modified = true;
     }
@@ -438,9 +455,12 @@ impl Editor {
     pub fn insert_new_line(&mut self) {
         if self.c_inline_pos == 0 {
             self.rows.insert(self.c_block_pos, Row::new(""));
+            self.rows[self.c_block_pos].update_render_with_syntax(&self.filetype);
         } else {
             let new_line = self.rows[self.c_block_pos].truncate(self.c_inline_pos);
+            self.rows[self.c_block_pos].update_render_with_syntax(&self.filetype);
             self.rows.insert(self.c_block_pos + 1, Row::new(new_line));
+            self.rows[self.c_block_pos + 1].update_render_with_syntax(&self.filetype);
         }
         self.c_block_pos += 1;
         self.c_inline_pos = 0;
@@ -470,6 +490,7 @@ impl Editor {
         if self.c_inline_pos > 0 {
             self.c_inline_pos -= 1;
             self.rows[self.c_block_pos].delete_char(self.c_inline_pos);
+            self.rows[self.c_block_pos].update_render_with_syntax(&self.filetype);
         } else {
             let right = self.rows.remove(self.c_block_pos);
             self.c_block_pos -= 1;
@@ -485,6 +506,7 @@ impl Editor {
             Mode::Select => self.process_keypress(Mode::Select),
             Mode::Normal => self.process_keypress(Mode::Normal),
             Mode::Insert => self.process_keypress(Mode::Insert),
+            Mode::LineSelect => self.process_keypress(Mode::LineSelect),
         }
     }
 
@@ -494,46 +516,15 @@ impl Editor {
             Mode::Insert => self.insert_process(c),
             Mode::Normal => self.normal_process(c),
             Mode::Select => self.select_process(c),
+            // Here I should add another function to process it.
+            Mode::LineSelect => self.line_select_process(c),
         }
     }
 
-    // pub fn line_select_process(&mut self, c: Key) -> bool {
-    //     match c {
-    //         Key::Character(CTRL_C) => {
-    //             self.type_mode = Mode::Normal;
-    //             self.c_block_pos = self.c_block_start_select;
-    //             self.c_block_start_select = 0;
-    //             return true;
-    //         }
-    //         Key::Character(b'j') | Key::Character(b'k') => {
-    //             self.move_cursor_with_vim_key(c);
-    //             return true;
-    //         }
-    //         Key::Character(b'x') | Key::Character(b'd') => {
-    //             if self.c_block_start_select > self.c_block_pos {
-    //                 while self.c_block_pos != self.c_block_start_select + 1 {
-    //                     self.c_inline_pos = self.rowlen(self.c_block_pos);
-    //                     while self.c_inline_pos != 0 {
-    //                         self.delete_char();
-    //                     }
-    //                     self.c_block_pos += 1;
-    //                 }
-    //             } else if self.c_block_start_select < self.c_block_pos {
-    //                 while self.c_block_pos != self.c_block_start_select {
-    //                     self.c_inline_pos = self.rowlen(self.c_block_pos);
-    //
-    //                     while self.c_inline_pos != 0 {
-    //                         self.delete_char();
-    //                     }
-    //                     self.c_block_pos -= 1;
-    //                 }
-    //             }
-    //             return true;
-    //         }
-    //         _ => true,
-    //     };
-    //     true
-    // }
+    pub fn line_select_process(&mut self, c: Key) -> bool {
+        // TODO: Fill this.
+        true
+    }
 
     pub fn cmd_process(&mut self) -> bool {
         let command = self.prompt(|v| format!(":{}", v), |_, _, _| ());
@@ -558,18 +549,14 @@ impl Editor {
                 return false;
             } else if cmd == "help" {
                 return false;
+            } else if cmd == "set filetype" {
+                self.set_status_message(self.filetype.clone());
+                return true;
+            } else if cmd == "set colorcolumn" {
             }
         }
         true
     }
-
-    // pub fn get_separated_char_for_row(&mut self) -> Vec<char> {
-    //     if let Some(r) = self.rows.get(self.c_block_pos) {
-    //         r.characters.chars().collect()
-    //     } else {
-    //         vec![]
-    //     }
-    // }
 
     pub fn select_process(&mut self, c: Key) -> bool {
         match c {
@@ -856,6 +843,12 @@ impl Editor {
         let file = BufReader::new(&f);
         let results: Result<Vec<Row>> = file.lines().map(|r| r.map(Row::new)).collect();
         self.rows = results?;
+        let map = load_filetype("src/filetype.json");
+        let filetype = get_filetype(filename, &map);
+        self.filetype = filetype.clone();
+        for row in &mut self.rows {
+            row.update_render_with_syntax(&self.filetype);
+        }
         self.modified = false;
         Ok(())
     }
@@ -877,6 +870,9 @@ impl Editor {
         file.set_len(data.len() as u64)?;
         file.write_all(&data)?;
         self.modified = false;
+        let map = load_filetype("src/filetype.json");
+        let filetype = get_filetype(filename, &map);
+        self.filetype = filetype.clone();
         Ok(data.len())
     }
 

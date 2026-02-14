@@ -1,4 +1,13 @@
-use crate::utils::TAB_STOP;
+use crate::{filetype::load_keywords, utils::TAB_STOP};
+
+// #[derive(Debug, Clone, Copy)]
+// pub enum Highlight {
+//     Normal,
+//     Number,
+//     String,
+//     Comment,
+//     Keyword,
+// }
 
 pub struct Row {
     pub characters: String,
@@ -6,6 +15,105 @@ pub struct Row {
 }
 
 impl Row {
+    pub fn update_render_with_syntax(&mut self, filetype: &str) {
+        let keywords = load_keywords(filetype);
+
+        let mut render = String::new();
+
+        let chars: Vec<char> = self.characters.chars().collect();
+        let mut i = 0;
+        let mut is_inside_comment = false;
+
+        while i < chars.len() {
+            let c = chars[i];
+
+            if c == '"' {
+                render.push_str("\x1b[32m");
+                render.push(c);
+                i += 1;
+                while i < chars.len() && chars[i] != '"' {
+                    render.push(chars[i]);
+                    i += 1;
+                }
+                if i < chars.len() {
+                    render.push(chars[i]);
+                    i += 1;
+                }
+                render.push_str("\x1b[39m");
+                continue;
+            }
+
+            if is_inside_comment {
+                if c == '\n' {
+                    render.push_str("\x1b[0m");
+                    is_inside_comment = false;
+                }
+                render.push(c);
+                i += 1;
+                continue;
+            }
+
+            if (filetype == "ruby" || filetype == "python") && c == '#' {
+                render.push_str("\x1b[2;90m");
+
+                while i < chars.len() {
+                    render.push(chars[i]);
+                    i += 1;
+                }
+
+                render.push_str("\x1b[0m");
+                break;
+            }
+
+            if c == '/' && i + 1 < chars.len() && chars[i + 1] == '/' {
+                render.push_str("\x1b[2;90m");
+
+                while i < chars.len() {
+                    render.push(chars[i]);
+                    i += 1;
+                }
+
+                render.push_str("\x1b[0m");
+                break;
+            }
+
+            if c.is_ascii_digit() && !is_inside_comment {
+                render.push_str("\x1b[35m");
+                while i < chars.len() && chars[i].is_ascii_digit() {
+                    render.push(chars[i]);
+                    i += 1;
+                }
+                render.push_str("\x1b[39m");
+                continue;
+            }
+
+            if c.is_ascii_alphabetic() || c == '_' && !is_inside_comment {
+                let start = i;
+                while i < chars.len() && (chars[i].is_ascii_alphanumeric() || chars[i] == '_') {
+                    i += 1;
+                }
+                let word: String = chars[start..i].iter().collect();
+                if keywords.contains(&word) {
+                    render.push_str("\x1b[34m");
+                    render.push_str(&word);
+                    render.push_str("\x1b[0m");
+                } else if i < chars.len() && chars[i] == '(' {
+                    render.push_str("\x1b[1;31m");
+                    render.push_str(&word);
+                    render.push_str("\x1b[0m");
+                } else {
+                    render.push_str(&word);
+                }
+                continue;
+            }
+
+            render.push(c);
+            i += 1;
+        }
+
+        self.render = render;
+    }
+
     pub fn render_row(chars: &str) -> String {
         let mut idx = 0;
         let mut render = String::new();
