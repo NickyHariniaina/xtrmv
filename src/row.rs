@@ -1,4 +1,7 @@
-use crate::utils::TAB_STOP;
+use crate::{
+    filetype::{load_filetype, load_keywords},
+    utils::TAB_STOP,
+};
 
 #[derive(Debug, Clone, Copy)]
 pub enum Highlight {
@@ -16,66 +19,8 @@ pub struct Row {
 
 impl Row {
     pub fn update_render_with_syntax(&mut self, filetype: &str) {
-        let keywords = [
-            "as",
-            "use",
-            "extern crate",
-            "break",
-            "const",
-            "continue",
-            "crate",
-            "else",
-            "if",
-            "if let",
-            "enum",
-            "extern",
-            "false",
-            "fn",
-            "for",
-            "if",
-            "impl",
-            "in",
-            "for",
-            "let",
-            "loop",
-            "match",
-            "mod",
-            "move",
-            "mut",
-            "pub",
-            "impl",
-            "ref",
-            "return",
-            "Self",
-            "self",
-            "static",
-            "struct",
-            "super",
-            "trait",
-            "true",
-            "type",
-            "unsafe",
-            "use",
-            "where",
-            "while",
-            "abstract",
-            "alignof",
-            "become",
-            "box",
-            "do",
-            "final",
-            "macro",
-            "offsetof",
-            "override",
-            "priv",
-            "proc",
-            "pure",
-            "sizeof",
-            "typeof",
-            "unsized",
-            "virtual",
-            "yield",
-        ];
+        let keywords = load_keywords(filetype);
+
         let mut render = String::new();
 
         let chars: Vec<char> = self.characters.chars().collect();
@@ -116,10 +61,14 @@ impl Row {
                     i += 1;
                 }
                 let word: String = chars[start..i].iter().collect();
-                if keywords.contains(&word.as_str()) {
+                if keywords.contains(&word) {
                     render.push_str("\x1b[34m"); // blue
                     render.push_str(&word);
                     render.push_str("\x1b[39m"); // reset
+                } else if i < chars.len() && chars[i] == '(' {
+                    render.push_str("\x1b[1;31m");
+                    render.push_str(&word);
+                    render.push_str("\x1b[0m");
                 } else {
                     render.push_str(&word);
                 }
