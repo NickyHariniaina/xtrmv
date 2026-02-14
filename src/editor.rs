@@ -455,8 +455,10 @@ impl Editor {
     pub fn insert_new_line(&mut self) {
         if self.c_inline_pos == 0 {
             self.rows.insert(self.c_block_pos, Row::new(""));
+            self.rows[self.c_block_pos].update_render_with_syntax(&self.filetype);
         } else {
             let new_line = self.rows[self.c_block_pos].truncate(self.c_inline_pos);
+            self.rows[self.c_block_pos].update_render_with_syntax(&self.filetype);
             self.rows.insert(self.c_block_pos + 1, Row::new(new_line));
             self.rows[self.c_block_pos + 1].update_render_with_syntax(&self.filetype);
         }
