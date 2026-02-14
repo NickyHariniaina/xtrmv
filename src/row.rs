@@ -1,7 +1,4 @@
-use crate::{
-    filetype::{load_keywords},
-    utils::TAB_STOP,
-};
+use crate::{filetype::load_keywords, utils::TAB_STOP};
 
 // #[derive(Debug, Clone, Copy)]
 // pub enum Highlight {
@@ -22,7 +19,6 @@ impl Row {
         let keywords = load_keywords(filetype);
 
         let mut render = String::new();
-        let mut numberOfSlash = 0;
 
         let chars: Vec<char> = self.characters.chars().collect();
         let mut i = 0;
@@ -49,6 +45,7 @@ impl Row {
 
             if is_inside_comment {
                 if c == '\n' {
+                    render.push_str("\x1b[0m");
                     is_inside_comment = false;
                 }
                 render.push(c);
@@ -56,20 +53,31 @@ impl Row {
                 continue;
             }
 
-            if c == '/' {
-                numberOfSlash += 1;
-                if numberOfSlash == 2 {
-                    is_inside_comment = true;
-                    render.push(c);
-                    render.push_str("\x1b[2m");
-                    render.push_str("\x1b[90m");
+            if (filetype == "ruby" || filetype == "python") && c == '#' {
+                render.push_str("\x1b[2;90m");
+
+                while i < chars.len() {
+                    render.push(chars[i]);
                     i += 1;
-                    continue;
                 }
+
+                render.push_str("\x1b[0m");
+                break;
             }
 
+            if c == '/' && i + 1 < chars.len() && chars[i + 1] == '/' {
+                render.push_str("\x1b[2;90m");
 
-            if c.is_ascii_digit() {
+                while i < chars.len() {
+                    render.push(chars[i]);
+                    i += 1;
+                }
+
+                render.push_str("\x1b[0m");
+                break;
+            }
+
+            if c.is_ascii_digit() && !is_inside_comment {
                 render.push_str("\x1b[35m");
                 while i < chars.len() && chars[i].is_ascii_digit() {
                     render.push(chars[i]);
@@ -79,7 +87,7 @@ impl Row {
                 continue;
             }
 
-            if c.is_ascii_alphabetic() || c == '_' {
+            if c.is_ascii_alphabetic() || c == '_' && !is_inside_comment {
                 let start = i;
                 while i < chars.len() && (chars[i].is_ascii_alphanumeric() || chars[i] == '_') {
                     i += 1;
