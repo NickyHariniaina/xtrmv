@@ -1,11 +1,138 @@
 use crate::utils::TAB_STOP;
 
+#[derive(Debug, Clone, Copy)]
+pub enum Highlight {
+    Normal,
+    Number,
+    String,
+    Comment,
+    Keyword,
+}
+
 pub struct Row {
     pub characters: String,
     pub render: String,
 }
 
 impl Row {
+    pub fn update_render_with_syntax(&mut self, filetype: &str) {
+        let keywords = [
+            "as",
+            "use",
+            "extern crate",
+            "break",
+            "const",
+            "continue",
+            "crate",
+            "else",
+            "if",
+            "if let",
+            "enum",
+            "extern",
+            "false",
+            "fn",
+            "for",
+            "if",
+            "impl",
+            "in",
+            "for",
+            "let",
+            "loop",
+            "match",
+            "mod",
+            "move",
+            "mut",
+            "pub",
+            "impl",
+            "ref",
+            "return",
+            "Self",
+            "self",
+            "static",
+            "struct",
+            "super",
+            "trait",
+            "true",
+            "type",
+            "unsafe",
+            "use",
+            "where",
+            "while",
+            "abstract",
+            "alignof",
+            "become",
+            "box",
+            "do",
+            "final",
+            "macro",
+            "offsetof",
+            "override",
+            "priv",
+            "proc",
+            "pure",
+            "sizeof",
+            "typeof",
+            "unsized",
+            "virtual",
+            "yield",
+        ];
+        let mut render = String::new();
+
+        let chars: Vec<char> = self.characters.chars().collect();
+        let mut i = 0;
+
+        while i < chars.len() {
+            let c = chars[i];
+
+            if c == '"' {
+                render.push_str("\x1b[32m");
+                render.push(c);
+                i += 1;
+                while i < chars.len() && chars[i] != '"' {
+                    render.push(chars[i]);
+                    i += 1;
+                }
+                if i < chars.len() {
+                    render.push(chars[i]);
+                    i += 1;
+                }
+                render.push_str("\x1b[39m");
+                continue;
+            }
+
+            if c.is_ascii_digit() {
+                render.push_str("\x1b[35m");
+                while i < chars.len() && chars[i].is_ascii_digit() {
+                    render.push(chars[i]);
+                    i += 1;
+                }
+                render.push_str("\x1b[39m");
+                continue;
+            }
+
+            if c.is_ascii_alphabetic() || c == '_' {
+                let start = i;
+                while i < chars.len() && (chars[i].is_ascii_alphanumeric() || chars[i] == '_') {
+                    i += 1;
+                }
+                let word: String = chars[start..i].iter().collect();
+                if keywords.contains(&word.as_str()) {
+                    render.push_str("\x1b[34m"); // blue
+                    render.push_str(&word);
+                    render.push_str("\x1b[39m"); // reset
+                } else {
+                    render.push_str(&word);
+                }
+                continue;
+            }
+
+            render.push(c);
+            i += 1;
+        }
+
+        self.render = render;
+    }
+
     pub fn render_row(chars: &str) -> String {
         let mut idx = 0;
         let mut render = String::new();

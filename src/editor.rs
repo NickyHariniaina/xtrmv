@@ -161,9 +161,16 @@ impl Editor {
                     self.write(b"-")?;
                 }
             } else {
-                let line_number =
-                    format!("{:>width$} ", filerow + 1, width = self.line_number_width - 1);
+                let line_number = format!(
+                    "{:>width$} ",
+                    filerow + 1,
+                    width = self.line_number_width - 1
+                );
+
+                self.write(b"\x1b[2m\x1b[90m")?;
                 self.write(line_number.as_bytes())?;
+                self.write(b"\x1b[22m\x1b[39m")?;
+
                 let content_width = self.active_cols.saturating_sub(self.line_number_width);
                 self.stdout.write_all(byte_slice(
                     &self.rows[filerow].render,
@@ -440,6 +447,7 @@ impl Editor {
             self.rows.push(Row::new(""));
         }
         self.rows[self.c_block_pos].insert_char(self.c_inline_pos, c);
+        self.rows[self.c_block_pos].update_render_with_syntax(&self.filetype);
         self.c_inline_pos += 1;
         self.modified = true;
     }
@@ -450,6 +458,7 @@ impl Editor {
         } else {
             let new_line = self.rows[self.c_block_pos].truncate(self.c_inline_pos);
             self.rows.insert(self.c_block_pos + 1, Row::new(new_line));
+            self.rows[self.c_block_pos + 1].update_render_with_syntax(&self.filetype);
         }
         self.c_block_pos += 1;
         self.c_inline_pos = 0;
@@ -479,6 +488,7 @@ impl Editor {
         if self.c_inline_pos > 0 {
             self.c_inline_pos -= 1;
             self.rows[self.c_block_pos].delete_char(self.c_inline_pos);
+            self.rows[self.c_block_pos].update_render_with_syntax(&self.filetype);
         } else {
             let right = self.rows.remove(self.c_block_pos);
             self.c_block_pos -= 1;
@@ -834,6 +844,9 @@ impl Editor {
         let map = load_filetype("assets/filetype.json");
         let filetype = get_filetype(filename, &map);
         self.filetype = filetype.clone();
+        for row in &mut self.rows {
+            row.update_render_with_syntax(&self.filetype);
+        }
         self.modified = false;
         Ok(())
     }
