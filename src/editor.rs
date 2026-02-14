@@ -37,6 +37,7 @@ pub enum Direction {
 
 pub struct Editor {
     pub _mode: RawMode,
+    pub line_number_width: usize,
     pub type_mode: Mode,
     pub c_inline_pos: usize,
     pub c_block_pos: usize,
@@ -68,6 +69,7 @@ impl Editor {
         Ok(Self {
             initial_colorcolumn: 100,
             _mode: mode,
+            line_number_width: 4,
             type_mode: Mode::Normal,
             filetype: "none".to_string(),
             c_inline_pos: 0,
@@ -159,10 +161,14 @@ impl Editor {
                     self.write(b"-")?;
                 }
             } else {
+                let line_number =
+                    format!("{:>width$} ", filerow + 1, width = self.line_number_width - 1);
+                self.write(line_number.as_bytes())?;
+                let content_width = self.active_cols.saturating_sub(self.line_number_width);
                 self.stdout.write_all(byte_slice(
                     &self.rows[filerow].render,
                     self.coloff,
-                    self.active_cols,
+                    content_width,
                 ))?;
             }
             self.write(b"\x1b[K")?;
@@ -271,8 +277,8 @@ impl Editor {
 
         let move_cursor = format!(
             "\x1b[{};{}H",
-            (self.c_block_pos - self.rowoff) + 1,
-            (self.c_inline_pos_with_tab - self.coloff) + 1
+            (self.c_block_pos.saturating_sub(self.rowoff) + 1),
+            (self.c_inline_pos_with_tab.saturating_sub(self.coloff)) + 1 + self.line_number_width
         )
         .into_bytes();
         // c_block_pos - self.rowoff is the cursor position relative to what's visible.
