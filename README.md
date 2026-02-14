@@ -33,6 +33,7 @@ cargo install xtrmv
   - :q! : Quit without saving.
   - :wq | :x : Save and quit.
 - Auto-closed brackets support.
+- Syntax Highlight: Rust, Python, C, C++, C#, Java, JavaScript, Ruby, Golang, TypeScript, PHP...
 
 🔗 Contributing:
 
