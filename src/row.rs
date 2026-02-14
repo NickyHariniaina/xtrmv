@@ -1,16 +1,16 @@
 use crate::{
-    filetype::{load_filetype, load_keywords},
+    filetype::{load_keywords},
     utils::TAB_STOP,
 };
 
-#[derive(Debug, Clone, Copy)]
-pub enum Highlight {
-    Normal,
-    Number,
-    String,
-    Comment,
-    Keyword,
-}
+// #[derive(Debug, Clone, Copy)]
+// pub enum Highlight {
+//     Normal,
+//     Number,
+//     String,
+//     Comment,
+//     Keyword,
+// }
 
 pub struct Row {
     pub characters: String,
@@ -22,9 +22,11 @@ impl Row {
         let keywords = load_keywords(filetype);
 
         let mut render = String::new();
+        let mut numberOfSlash = 0;
 
         let chars: Vec<char> = self.characters.chars().collect();
         let mut i = 0;
+        let mut is_inside_comment = false;
 
         while i < chars.len() {
             let c = chars[i];
@@ -45,6 +47,28 @@ impl Row {
                 continue;
             }
 
+            if is_inside_comment {
+                if c == '\n' {
+                    is_inside_comment = false;
+                }
+                render.push(c);
+                i += 1;
+                continue;
+            }
+
+            if c == '/' {
+                numberOfSlash += 1;
+                if numberOfSlash == 2 {
+                    is_inside_comment = true;
+                    render.push(c);
+                    render.push_str("\x1b[2m");
+                    render.push_str("\x1b[90m");
+                    i += 1;
+                    continue;
+                }
+            }
+
+
             if c.is_ascii_digit() {
                 render.push_str("\x1b[35m");
                 while i < chars.len() && chars[i].is_ascii_digit() {
@@ -62,9 +86,9 @@ impl Row {
                 }
                 let word: String = chars[start..i].iter().collect();
                 if keywords.contains(&word) {
-                    render.push_str("\x1b[34m"); // blue
+                    render.push_str("\x1b[34m");
                     render.push_str(&word);
-                    render.push_str("\x1b[39m"); // reset
+                    render.push_str("\x1b[0m");
                 } else if i < chars.len() && chars[i] == '(' {
                     render.push_str("\x1b[1;31m");
                     render.push_str(&word);
