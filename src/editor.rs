@@ -919,7 +919,7 @@ impl Editor {
         let file = BufReader::new(&f);
         let results: Result<Vec<Row>> = file.lines().map(|r| r.map(Row::new)).collect();
         self.rows = results?;
-        let map = load_filetype("src/filetype.json");
+        let map = load_filetype();
         let filetype = get_filetype(filename, &map);
         self.filetype = filetype.clone();
         for row in &mut self.rows {
@@ -946,7 +946,7 @@ impl Editor {
         file.set_len(data.len() as u64)?;
         file.write_all(&data)?;
         self.modified = false;
-        let map = load_filetype("src/filetype.json");
+        let map = load_filetype();
         let filetype = get_filetype(filename, &map);
         self.filetype = filetype.clone();
         Ok(data.len())
